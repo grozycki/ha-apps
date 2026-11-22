@@ -11,4 +11,3 @@ arch:
 startup: services
 ports:
   8000/tcp: 8000
-apparmor: true

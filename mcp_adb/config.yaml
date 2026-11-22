@@ -11,7 +11,6 @@ arch:
 startup: services
 ports:
   8555/tcp: 8555
-apparmor: true
 options:
   device_ip: 127.0.0.1
   port: 5555
