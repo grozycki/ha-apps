@@ -2,6 +2,8 @@ name: "MCP VOD Search"
 description: "Search for VODs in the MCP"
 version: "0.0.11"
 slug: "mcp_vod_search"
+url: "https://github.com/grozycki/ha-apps/tree/main/mcp_vod_search"
+image: "ghcr.io/grozycki/mcp-vod-search"
 init: false
 arch:
   - aarch64

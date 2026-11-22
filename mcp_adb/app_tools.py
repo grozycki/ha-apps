@@ -54,7 +54,7 @@ def register_app_tools(mcp: FastMCP, device_manager: DeviceManager, logger: Logg
         except Exception as e:
             logger.error(f"Error retrieving current app via ADB: {e}")
 
-            raise ToolError(f"Failed to retrieve current app")
+            raise ToolError("Failed to retrieve current app")
 
     @mcp.tool()
     def launch_app(device_uuid: str, package_name: str, deep_link: Optional[str] = None) -> ToolResult:
@@ -173,7 +173,7 @@ def register_app_tools(mcp: FastMCP, device_manager: DeviceManager, logger: Logg
 
         except Exception as e:
             logger.error(f"Failed to execute global search: {e}")
-            raise ToolError(f"Failed to trigger global search")
+            raise ToolError("Failed to trigger global search")
 
     def _ensure_screen_on(adb_device: AdbDevice, timeout: int = 10) -> None:
         """Checks if the Android TV screen is awake, and wakes it up if it's sleeping."""

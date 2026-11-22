@@ -62,7 +62,7 @@ def register_remote_tools(mcp: FastMCP, device_manager: DeviceManager, logger: L
         except Exception as e:
             logger.error(f"Error pressing button via ADB: {e}")
 
-            raise ToolError(f"Failed to press button")
+            raise ToolError("Failed to press button")
 
     # --- Navigation ---
 

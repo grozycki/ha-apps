@@ -21,7 +21,7 @@ def register_pairing_tools(mcp: FastMCP, adb_discovery: ADBAutoDiscovery, logger
         except Exception as e:
             logger.error(f"Error retrieving devices: {e}")
 
-            raise ToolError(f"Failed to retrieve devices")
+            raise ToolError("Failed to retrieve devices")
 
     @mcp.tool()
     def pair_device(pairing_code: str, device_uuid: str) -> ToolResult:

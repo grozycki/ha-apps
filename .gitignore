@@ -1,0 +1,8 @@
+# Specifications live in the private ha-apps-specs repository and are linked
+# into each app with scripts/link-specs.sh.
+/*/openspec
+
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
