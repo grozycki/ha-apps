@@ -2,6 +2,8 @@ name: "MCP Web Search"
 description: "MCP web search server for Assist"
 version: "1.0.0"
 slug: "mcp_web_search"
+url: "https://github.com/grozycki/ha-apps/tree/main/mcp_web_search"
+image: "ghcr.io/grozycki/mcp-web-search"
 init: false
 arch:
   - aarch64

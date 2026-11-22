@@ -1,0 +1,180 @@
+---
+# Publish one app release: build and push its images, create the GitHub
+# release, and only then copy the app's metadata into the distribution
+# repository that users add to Home Assistant.
+#
+# Runs for a tag APP-vVERSION, pushed by hand or by release.yaml.
+#
+# Needs:
+#   vars.DIST_APP_CLIENT_ID   GitHub App (client ID) with contents: write on the
+#                             distribution repository
+#   secrets.DIST_APP_PRIVATE_KEY
+#   vars.DIST_REPOSITORY      optional, default grozycki/home-assistant-apps
+#   vars.DIST_BRANCH          optional, default main (use "next" to try a
+#                             release without reaching users)
+name: Publish
+
+on:
+  push:
+    tags: ["*-v*"]
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag, APP-vVERSION
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-info:
+    name: Check release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      app: ${{ steps.tag.outputs.app }}
+      version: ${{ steps.tag.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Check that the tag matches the app version
+        id: tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          app="${TAG%-v*}"
+          version="${TAG##*-v}"
+          config="${app}/config.yaml"
+          if [[ ! -f "${config}" ]]; then
+            echo "::error::Tag ${TAG}: ${config} not found"
+            exit 1
+          fi
+          current="$(yq -r '.version' "${config}")"
+          if [[ "${current}" != "${version}" ]]; then
+            echo "::error::Tag ${TAG} says ${version}, but ${config} has version ${current}"
+            exit 1
+          fi
+          if ! python3 scripts/changelog.py notes "${app}/CHANGELOG.md" "${version}" > /dev/null; then
+            echo "::error::${app}/CHANGELOG.md has no section for ${version}"
+            exit 1
+          fi
+          {
+            echo "app=${app}"
+            echo "version=${version}"
+            echo "tag=${TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build
+    needs: release-info
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: ./.github/workflows/build-app.yaml
+    with:
+      app: ${{ needs.release-info.outputs.app }}
+      publish: true
+      ref: refs/tags/${{ needs.release-info.outputs.tag }}
+
+  github-release:
+    name: Create GitHub release
+    needs: [release-info, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ needs.release-info.outputs.tag }}
+          persist-credentials: false
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ needs.release-info.outputs.app }}
+          VERSION: ${{ needs.release-info.outputs.version }}
+          TAG: ${{ needs.release-info.outputs.tag }}
+        run: |
+          python3 scripts/changelog.py notes "${APP}/CHANGELOG.md" "${VERSION}" > notes.md
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            echo "Release ${TAG} already exists"
+          else
+            gh release create "${TAG}" --verify-tag --title "${APP} ${VERSION}" --notes-file notes.md
+          fi
+
+  distribute:
+    name: Update distribution repository
+    needs: [release-info, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: distribution
+      cancel-in-progress: false
+    env:
+      DIST_REPOSITORY: ${{ vars.DIST_REPOSITORY || 'grozycki/home-assistant-apps' }}
+      DIST_BRANCH: ${{ vars.DIST_BRANCH || 'main' }}
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ needs.release-info.outputs.tag }}
+          persist-credentials: false
+
+      - name: Split the distribution repository name
+        id: dist
+        run: |
+          echo "owner=${DIST_REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
+          echo "name=${DIST_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Get a token for the distribution repository
+        id: token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.DIST_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DIST_APP_PRIVATE_KEY }}
+          owner: ${{ steps.dist.outputs.owner }}
+          repositories: ${{ steps.dist.outputs.name }}
+          permission-contents: write
+
+      - name: Check out the distribution repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.DIST_REPOSITORY }}
+          ref: ${{ env.DIST_BRANCH }}
+          token: ${{ steps.token.outputs.token }}
+          path: dist
+
+      - name: Copy the app metadata
+        env:
+          APP: ${{ needs.release-info.outputs.app }}
+        run: scripts/sync-dist.sh "${APP}" dist
+
+      - name: Commit and push
+        working-directory: dist
+        env:
+          APP: ${{ needs.release-info.outputs.app }}
+          VERSION: ${{ needs.release-info.outputs.version }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.release-info.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all "${APP}"
+          if git diff --cached --quiet; then
+            echo "Distribution already has ${APP} ${VERSION}"
+            exit 0
+          fi
+          git commit -m "${APP} ${VERSION}" -m "${SOURCE}"
+          git push origin "HEAD:${DIST_BRANCH}"

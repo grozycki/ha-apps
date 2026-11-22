@@ -1,0 +1,10 @@
+---
+configuration:
+  country:
+    name: Country
+    description: Country code used for streaming availability, for example PL.
+  language:
+    name: Language
+    description: Language of titles and descriptions, for example pl.
+network:
+  8101/tcp: MCP server (SSE)

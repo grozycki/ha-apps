@@ -1,0 +1,20 @@
+---
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # One entry per app: keeps the pinned base image of each app current.
+  - package-ecosystem: docker
+    directories:
+      - /mcp_adb
+      - /mcp_memory
+      - /mcp_vod_search
+      - /mcp_web_search
+    schedule:
+      interval: weekly

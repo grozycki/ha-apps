@@ -2,6 +2,8 @@ name: "MCP Android Debug Bridge"
 description: "Android Debug Bridge (ADB) server for MCP to communicate with Android devices."
 version: "1.0.50"
 slug: "mcp_adb"
+url: "https://github.com/grozycki/ha-apps/tree/main/mcp_adb"
+image: "ghcr.io/grozycki/mcp-adb"
 init: false
 arch:
   - aarch64
@@ -9,7 +11,6 @@ arch:
 startup: services
 ports:
   8555/tcp: 8555
-apparmor: true
 options:
   device_ip: 127.0.0.1
   port: 5555
