@@ -1,0 +1,12 @@
+---
+configuration:
+  device_ip:
+    name: Device address
+    description: >-
+      Address of the Android device. Devices are currently found with mDNS
+      and this option is not used.
+  port:
+    name: ADB port
+    description: ADB port of the device. Currently not used.
+network:
+  8555/tcp: MCP server (SSE)

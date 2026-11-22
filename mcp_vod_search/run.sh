@@ -1,7 +1,8 @@
 #!/usr/bin/with-contenv bashio
 
-export COUNTRY=$(bashio::config 'country')
-export LANGUAGE=$(bashio::config 'language')
+COUNTRY="$(bashio::config 'country')"
+LANGUAGE="$(bashio::config 'language')"
+export COUNTRY LANGUAGE
 
 # Start the MCP server
 exec python3 /main.py

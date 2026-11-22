@@ -145,7 +145,7 @@ def list_all_memories(pipeline_id: str) -> str:
     conn.close()
 
     if not rows:
-        return f"Database is empty."
+        return "Database is empty."
 
     logger.info(f"Listed {len(rows)} memories for '{pipeline_id}'.")
     memories = [

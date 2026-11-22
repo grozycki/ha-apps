@@ -1,0 +1,8 @@
+---
+ignored:
+  # Alpine and pip packages follow the pinned base image; pinning every
+  # package version would break on each base image update.
+  - DL3018
+  - DL3013
+  - DL3042
+  - DL3059

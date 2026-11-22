@@ -1,5 +1,4 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/base:latest
-FROM $BUILD_FROM
+FROM ghcr.io/home-assistant/base:3.24
 
 # Install requirements for app
 RUN \
